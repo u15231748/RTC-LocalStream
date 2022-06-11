@@ -32,7 +32,8 @@ io.on('connection', socket => {
     })
 
     socket.on("offer", (offer, room) => {
-        socket.to(room).emit("offerRequest", offer)
+        const offee = currentStream.filter((conn) => conn.room === room)
+        socket.to(offee[0].room).emit("offerRequest", offer)
     })
 
     socket.on("candidates", (candidate, room) => {

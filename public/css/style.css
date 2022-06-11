@@ -1,0 +1,38 @@
+html,body{
+    display: grid;
+    place-items: center;
+    height: 100%;
+}
+
+#videos{
+    position: relative;
+    display: grid;
+    place-items: center;
+    grid-template-columns: 1fr;
+    grid-gap: 1rem;
+}
+
+.video-player{
+    background-color: #000;
+    width: 100%;
+    height: 29rem;
+}
+
+#streambtns{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 2rem;
+}
+
+#streambtns button{
+    font-size: 14pt;
+    font-family: sans-serif;
+    background-color: tomato;
+    color: #fff;
+    padding: 1rem;
+    cursor: pointer;
+}
+
+#upload{
+    display: none;
+}

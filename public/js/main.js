@@ -92,8 +92,8 @@ socket.on("newCandidates", candidates => {
 })
 
 socket.on("answered", answer => {
-    if(!peerConnection.currentRemoteDescription)
-        peerConnection.setRemoteDescription(answer)
+    // if(!peerConnection.currentRemoteDescription)
+    peerConnection.setRemoteDescription(answer)
 })
 
 socket.on("MemberJoined", data => {

@@ -78,38 +78,37 @@ let createPeerConnection = async () => {
     }
 }
 
-// const createOffer = async () => {
-//     await createPeerConnection();
-//     const offer = await peerConnection.createOffer();
-//     await peerConnection.setLocalDescription(offer)
-//     socket.emit("offer", offer, room)
-// }
+const createOffer = async () => {
+    localstream = new MediaStream([videoStream({width: 920, height: 720}), audioStream()])
+    await createPeerConnection();
 
-// const createAnswer = async (offer) => {
-//     await createPeerConnection();
-//     peerConnection.setRemoteDescription(offer)
-//     const answer = await peerConnection.createAnswer();
-//     peerConnection.setLocalDescription(answer)
-//     socket.emit("answer", answer, room)
-// }
+    remotestream = new MediaStream();
+    user1.srcObject = remotestream;
+    user1.style.width = '100%';
+    user1.style.height = '100%';
 
-socket.on("offerRequest", async (offer) => {
-    console.log("\n\nOffer request", offer)
-    
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer)
+    socket.emit("offer", offer, room)
+}
+
+const createAnswer = async (offer) => {
     await createPeerConnection();
     peerConnection.setRemoteDescription(offer)
     const answer = await peerConnection.createAnswer();
     peerConnection.setLocalDescription(answer)
     socket.emit("answer", answer, room)
+}
+
+socket.on("offerRequest", async (offer) => {
+    await createAnswer(offer)
 })
 
 socket.on("newCandidates", candidates => {
-    console.log("\n\nNew candidates", candidates)
     peerConnection.addIceCandidate(candidates)
 })
 
 socket.on("answered", answer => {
-    console.log(peerConnection.currentRemoteDescription)
     if(!peerConnection.currentRemoteDescription)
         peerConnection.setRemoteDescription(answer)
 })
@@ -118,15 +117,10 @@ socket.on("MemberJoined", data => {
     console.log(data)
 })
 
-// init();
-
-createstream.addEventListener("click", async () => {
-    upload.click();
-})
+createstream.addEventListener("click", async () => upload.click());
 
 upload.addEventListener("change", async ({ target: { files } }) => {
     socket.emit("joinRoom", room)
-    // localstream = await navigator.mediaDevices.getUserMedia({video: true, audio: false})
     user1.src = URL.createObjectURL(files[0])
     localstream = await user1.captureStream();
     videoscontainer.style.display = "block";
@@ -135,17 +129,7 @@ upload.addEventListener("change", async ({ target: { files } }) => {
 
 connectstream.addEventListener("click", async () => {
     socket.emit("joinRoom", room)
-    localstream = new MediaStream([videoStream({height: 920, width: 640}), audioStream()])
-
-    await createPeerConnection();
+    await createOffer();
     streambtns.style.display = "none"
     videoscontainer.style.display = "block"
-
-    remotestream = new MediaStream();
-    user1.srcObject = remotestream;
-
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer)
-    socket.emit("offer", offer, room)
-
 })

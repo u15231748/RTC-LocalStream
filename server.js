@@ -12,18 +12,23 @@ app.use(cors());
 
 app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')))
 
-let currentStream = null
+let currentStream = []
 
 io.on('connection', socket => {
-    socket.on("isThereAStream", check => {
-        if(currentStream) check(true);
-        else check(false);
-    })
-
     socket.on("joinRoom", (room) => {
         socket.join(room)
         socket.to(room).emit("MemberJoined", `${socket.id} joined the stream`)
-        if(!currentStream) currentStream = socket;
+        if(!currentStream.find(conn => conn.user === socket.id)){
+            currentStream.push({
+                user: socket.id,
+                room: room
+            });
+        }
+    })
+
+    socket.on("checkRoom", (data, cb) => {
+        if(currentStream.find(conn => conn.room === data)) cb(true);
+        else cb(false);
     })
 
     socket.on("offer", (offer, room) => {
@@ -39,7 +44,14 @@ io.on('connection', socket => {
     })
 
     socket.on("disconnect", () => {
-        if(socket === currentStream) currentStream = null;
+        currentStream.forEach((conn, index) => {
+            if(conn.user === socket.id){
+                currentStream.splice(index, 1);
+                return;
+            }
+        })
+
+        console.log(currentStream)
     })
 })
 

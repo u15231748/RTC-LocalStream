@@ -1,6 +1,5 @@
 let localstream;
-let remotetream;
-const room = "rtc"
+let remotetream = null;
 let socket = io.connect('/')
 let servers = {
     iceServers: [
@@ -19,16 +18,10 @@ const createstream = document.getElementById('createstream')
 const connectstream = document.getElementById('connectstream')
 const videoscontainer = document.getElementById('videos')
 const upload = document.getElementById('upload')
+const room = document.getElementById('room')
 const peerConnection = new RTCPeerConnection(servers);
 
-socket.emit("isThereAStream", response => {
-    videoscontainer.style.display = 'none';
-    if(response){
-        createstream.style.display = 'none'
-    } else {
-        connectstream.style.display = 'none';
-    }
-})
+videoscontainer.style.display = "none"
 
 const audioStream = () => {
     const ctx = new AudioContext();
@@ -45,14 +38,6 @@ const videoStream = ({width = 920, height = 720} = {}) => {
     return Object.assign(stream.getTracks()[0], {enabled: false});
 }
 
-// const createLocalStream = async () => {
-//     localstream = await navigator.mediaDevices.getUserMedia({
-//         video: true,
-//         audio: false
-//     })
-//     user1.srcObject = localstream;
-// }
-
 let createPeerConnection = async () => {
     // // Local user adds their tracks to the peer connection
     localstream.getTracks().forEach(track => {
@@ -61,11 +46,9 @@ let createPeerConnection = async () => {
 
     // Listening on when our remote user adds their tracks to the connection!
     peerConnection.ontrack = e => {
-        if(remotestream){
-            e.streams[0].getTracks().forEach((track) => {
-                remotestream.addTrack(track)
-            })
-        }
+        e.streams[0].getTracks().forEach((track) => {
+            if(remotestream) remotestream.addTrack(track)
+        })
     }
 
     // Listening for icecandidates when they generated
@@ -73,7 +56,7 @@ let createPeerConnection = async () => {
     peerConnection.onicecandidate = async (e) => {
         if(e.candidate){
             // console.log("Icecandidate: ", e.candidate)
-            socket.emit("candidates", e.candidate, room)
+            socket.emit("candidates", e.candidate, room.value)
         }
     }
 }
@@ -89,7 +72,7 @@ const createOffer = async () => {
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer)
-    socket.emit("offer", offer, room)
+    socket.emit("offer", offer, room.value)
 }
 
 const createAnswer = async (offer) => {
@@ -97,7 +80,7 @@ const createAnswer = async (offer) => {
     peerConnection.setRemoteDescription(offer)
     const answer = await peerConnection.createAnswer();
     peerConnection.setLocalDescription(answer)
-    socket.emit("answer", answer, room)
+    socket.emit("answer", answer, room.value)
 }
 
 socket.on("offerRequest", async (offer) => {
@@ -117,10 +100,17 @@ socket.on("MemberJoined", data => {
     console.log(data)
 })
 
-createstream.addEventListener("click", async () => upload.click());
+createstream.addEventListener("click", async () => {
+    if((room.value).length > 0){
+        socket.emit("checkRoom", room.value, exist => {
+            if(exist) alert("Room Already Exist!!")
+            else upload.click()
+        })
+    }
+});
 
 upload.addEventListener("change", async ({ target: { files } }) => {
-    socket.emit("joinRoom", room)
+    socket.emit("joinRoom", room.value)
     user1.src = URL.createObjectURL(files[0])
     localstream = await user1.captureStream();
     videoscontainer.style.display = "block";
@@ -128,8 +118,10 @@ upload.addEventListener("change", async ({ target: { files } }) => {
 })
 
 connectstream.addEventListener("click", async () => {
-    socket.emit("joinRoom", room)
-    await createOffer();
-    streambtns.style.display = "none"
-    videoscontainer.style.display = "block"
+    if((room.value).length > 0){
+        socket.emit("joinRoom", room.value)
+        await createOffer();
+        streambtns.style.display = "none"
+        videoscontainer.style.display = "block"
+    } else alert("Which room do you want to connect to?")
 })

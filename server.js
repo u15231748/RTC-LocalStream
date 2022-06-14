@@ -18,7 +18,7 @@ io.on('connection', socket => {
     socket.on("joinRoom", (room) => {
         socket.join(room)
         socket.to(room).emit("MemberJoined", `${socket.id} joined the stream`)
-        if(!currentStream.find(conn => conn.user === socket.id)){
+        if(!currentStream.find(conn => conn.room === room)){
             currentStream.push({
                 user: socket.id,
                 room: room
@@ -33,7 +33,7 @@ io.on('connection', socket => {
 
     socket.on("offer", (offer, room) => {
         const offee = currentStream.filter((conn) => conn.room === room)
-        socket.to(offee[0].room).emit("offerRequest", offer)
+        socket.to(offee[0].room).emit("offerRequest", offer, socket.id)
     })
 
     socket.on("candidates", (candidate, room) => {

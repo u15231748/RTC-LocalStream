@@ -1,12 +1,38 @@
 let localstream;
 let remotetream = null;
 let socket = io.connect('/')
+
 let servers = {
-    iceServers: [
+    iceServers:  [
         {
             urls: [
                 "stun:stun1.1.google.com:19302",
                 "stun:stun2.1.google.com:19302"
+            ]
+        },
+        {
+            url: 'turn:turn.bistri.com:80',
+            credential: 'homeo',
+            username: 'homeo'
+        },
+        {
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443?transport=tcp",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: [
+                "stun:openrelay.metered.ca:80"
             ]
         }
     ]
@@ -20,6 +46,7 @@ const videoscontainer = document.getElementById('videos')
 const upload = document.getElementById('upload')
 const room = document.getElementById('room')
 const peerConnection = new RTCPeerConnection(servers);
+let receiver;
 
 videoscontainer.style.display = "none"
 
@@ -43,6 +70,8 @@ let createPeerConnection = async () => {
     localstream.getTracks().forEach(track => {
         peerConnection.addTrack(track, localstream);
     });
+    
+    remotestream = new MediaStream()
 
     // Listening on when our remote user adds their tracks to the connection!
     peerConnection.ontrack = e => {
@@ -55,8 +84,8 @@ let createPeerConnection = async () => {
     // From the Stun servers triggered by the localdescription
     peerConnection.onicecandidate = async (e) => {
         if(e.candidate){
-            // console.log("Icecandidate: ", e.candidate)
-            socket.emit("candidates", e.candidate, room.value)
+            if(receiver)
+                socket.emit("candidates", e.candidate, receiver)
         }
     }
 }
@@ -75,16 +104,17 @@ const createOffer = async () => {
     socket.emit("offer", offer, room.value)
 }
 
-const createAnswer = async (offer) => {
+const createAnswer = async (offer, user) => {
     await createPeerConnection();
     peerConnection.setRemoteDescription(offer)
     const answer = await peerConnection.createAnswer();
     peerConnection.setLocalDescription(answer)
-    socket.emit("answer", answer, room.value)
+    receiver = user;
+    socket.emit("answer", answer, receiver)
 }
 
-socket.on("offerRequest", async (offer) => {
-    await createAnswer(offer)
+socket.on("offerRequest", async (offer, user) => {
+    await createAnswer(offer, user)
 })
 
 socket.on("newCandidates", candidates => {
@@ -92,8 +122,8 @@ socket.on("newCandidates", candidates => {
 })
 
 socket.on("answered", answer => {
-    // if(!peerConnection.currentRemoteDescription)
-    peerConnection.setRemoteDescription(answer)
+    if(!peerConnection.currentRemoteDescription)
+        peerConnection.setRemoteDescription(answer)
 })
 
 socket.on("MemberJoined", data => {

@@ -4,12 +4,12 @@ let socket = io.connect('/')
 
 let servers = {
     iceServers:  [
-        {
-            urls: [
-                "stun:stun1.1.google.com:19302",
-                "stun:stun2.1.google.com:19302"
-            ]
-        },
+        // {
+        //     urls: [
+        //         "stun:stun1.1.google.com:19302",
+        //         "stun:stun2.1.google.com:19302"
+        //     ]
+        // },
         {
             url: 'turn:turn.bistri.com:80',
             credential: 'homeo',
